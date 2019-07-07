@@ -39,7 +39,6 @@
 DHT dht(DHT_PIN, DHT22);
 WiFiClient network;
 PubSubClient client(network);
-char hostname[8]; // ESP-XXX
 struct eeConf {
   char ssid[32];
   char passwd[64];
@@ -104,8 +103,7 @@ void loop() {
       Serial.print("*N* Connecting to MQTT server ");
       Serial.println(conf.mqttSrv);
       
-      // TODO Set Unique Hostname
-      if(!client.connect("ESP")) {
+      if(!client.connect(WiFi.hostname())) {
         Serial.print("*W* MQTT connection failed (");
         Serial.print(client.state());
         Serial.println(")");
@@ -115,7 +113,7 @@ void loop() {
       client.loop();
       
       if (iLoop >= SENSE_TIME/LOOP_PERIOD) {
-        // According to the count and period of the loops, we have reached the and of the allocated sensing time. 
+        // According to the count and period of the loops, we have reached the end of the allocated sensing time. 
         // Send the messages and go to sleep.
     
         // The temperature sensor accuracy is +/-.5, 
