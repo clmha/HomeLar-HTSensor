@@ -1,4 +1,4 @@
-/*HOMELAR-HTSENSOR A remote/wireless temperature and humidity sensor
+/*WHTSENSOR A wireless temperature and humidity sensor
  */
 
 // Standard
@@ -9,6 +9,7 @@
 #include <EEPROM.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
+#include <Wire.h>
 
 // PubSubClient
 #include <PubSubClient.h>
