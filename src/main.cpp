@@ -8,6 +8,7 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <Wire.h>
 
@@ -22,7 +23,8 @@
 
 // SW Configuration
 #define DHT_PIN D1
-#define HW_UART_SPEED 115200
+#define CONF_PIN D2
+#define HW_UART_SPEED 9600
 #define MSG_PERIOD 1200 // [s]
 #define MSG_OFFSET 0    // [s]
 #define SENSE_TIME 2    // [s]
@@ -30,22 +32,31 @@
 #define LOOP_PERIOD 0.5 // [s]
 
 /*
- * Static Variables
+ * Data Types
  */
-DHT dht(DHT_PIN, DHT22);
-WiFiClient network;
-PubSubClient client(network);
 struct eeConf
 {
   char ssid[32];
   char passwd[64];
   char mqttSrv[32];
-} conf;
+  char room[32];
+};
+
+/*
+ * Static Variables
+ */
+DHT dht(DHT_PIN, DHT22);
+WiFiClient network;
+PubSubClient client(network);
+struct eeConf conf;
 unsigned short int iLoop; // Number of LOOP iterations
+void (*stateDuringAction)();
 
 /*
  *  Function Declarations
  */
+void confStateDuringAction();
+void measStateDuringAction();
 void waitTimeHit(unsigned long tStart_ms, unsigned long tPeriod_ms);
 
 /*
@@ -60,6 +71,9 @@ void setup()
   EEPROM.begin(sizeof(struct eeConf));
   EEPROM.get(0, conf);
 
+  // Pins
+  pinMode(CONF_PIN, INPUT_PULLUP);
+
   // Serial
   Serial.begin(HW_UART_SPEED);
   while (!Serial)
@@ -70,13 +84,27 @@ void setup()
   // DHT Sensor
   dht.begin();
 
-  // WiFi
-  WiFi.begin(conf.ssid, conf.passwd);
+  // State Machine
+  switch (digitalRead(CONF_PIN))
+  {
+  case LOW:
+    // We are going in the CONF state, do the state entry actions directly
+    // here.
+    Serial.println("*N* CONF STATE");
+    WiFi.softAP(WiFi.hostname().c_str(), NULL);
+    stateDuringAction = &confStateDuringAction;
+    break;
+  case HIGH:
+    // We are going in the MEAS state do the state entry actions directly
+    // here.
+    Serial.println("*N* MEAS STATE");
+    WiFi.begin(conf.ssid, conf.passwd);
+    client.setServer(conf.mqttSrv, 1883);
+    stateDuringAction = &measStateDuringAction;
+    break;
+  }
 
-  // MQTT
-  client.setServer(conf.mqttSrv, 1883);
-
-  // Sync.
+  // Sync. before exit
   Serial.print("*N* SETUP END ");
   Serial.println(millis());
   waitTimeHit(0, SETUP_TIME * 1E3);
@@ -85,15 +113,36 @@ void setup()
 void loop()
 {
   //LOOP Code to run repeatedly
+  unsigned long tStart_ms = millis();
+
+  // Entry
+  Serial.print("*N* LOOP START ");
+  Serial.println(millis());
+
+  stateDuringAction();
+
+  // Sync. before exit
+  Serial.print("*N* LOOP END ");
+  Serial.println(millis());
+  waitTimeHit(tStart_ms, LOOP_PERIOD * 1E3);
+}
+
+void confStateDuringAction()
+{
+  //MEASSTATEDURINGACTION Action that occurs on a time step when the CONF state is already active
+
+  // Does nothing.
+}
+
+void measStateDuringAction()
+{
+  //MEASSTATEDURINGACTION Action that occurs on a time step when the MEAS state is already active
   bool isSleepingTime = false;
   char msg[4];
   float h_Pct;
   float T_DegC;
-  unsigned long tStart_ms = millis();
 
   iLoop++;
-  Serial.print("*N* LOOP START ");
-  Serial.println(millis());
   if (WiFi.status() == WL_CONNECTED)
   {
     // We are still connected to WiFi, we can continue with the wireless services.
@@ -152,11 +201,6 @@ void loop()
     Serial.print("*N* Connecting to WiFi ");
     Serial.println(conf.ssid);
   }
-
-  // Sync.
-  Serial.print("*N* LOOP END ");
-  Serial.println(millis());
-  waitTimeHit(tStart_ms, LOOP_PERIOD * 1E3);
 
   // Sleep
   if (isSleepingTime)
