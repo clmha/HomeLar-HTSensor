@@ -46,6 +46,7 @@ struct eeConf
  * Static Variables
  */
 DHT dht(DHT_PIN, DHT22);
+ESP8266WebServer webServer(80);
 WiFiClient network;
 PubSubClient client(network);
 struct eeConf conf;
@@ -84,6 +85,11 @@ void setup()
   // DHT Sensor
   dht.begin();
 
+  // Web Server
+  webServer.on("/", [](){
+    webServer.send(200, "text/plain", "Hello world from "+WiFi.hostname()+"!");
+  });
+
   // State Machine
   switch (digitalRead(CONF_PIN))
   {
@@ -93,6 +99,7 @@ void setup()
     Serial.println("*N* CONF STATE");
     WiFi.softAP(WiFi.hostname().c_str(), NULL);
     stateDuringAction = &confStateDuringAction;
+    webServer.begin();
     break;
   case HIGH:
     // We are going in the MEAS state do the state entry actions directly
@@ -131,7 +138,7 @@ void confStateDuringAction()
 {
   //MEASSTATEDURINGACTION Action that occurs on a time step when the CONF state is already active
 
-  // Does nothing.
+  webServer.handleClient();
 }
 
 void measStateDuringAction()
