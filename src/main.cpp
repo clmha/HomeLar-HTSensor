@@ -10,6 +10,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
+#include <FS.h>
 #include <Wire.h>
 
 // PubSubClient
@@ -72,6 +73,9 @@ void setup()
   EEPROM.begin(sizeof(struct eeConf));
   EEPROM.get(0, conf);
 
+  // File System
+  SPIFFS.begin();
+
   // Pins
   pinMode(CONF_PIN, INPUT_PULLUP);
 
@@ -86,9 +90,7 @@ void setup()
   dht.begin();
 
   // Web Server
-  webServer.on("/", [](){
-    webServer.send(200, "text/plain", "Hello world from "+WiFi.hostname()+"!");
-  });
+  webServer.serveStatic("/", SPIFFS, "/index.htm");
 
   // State Machine
   switch (digitalRead(CONF_PIN))
