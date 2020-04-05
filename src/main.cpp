@@ -91,6 +91,16 @@ void setup()
 
   // Web Server
   webServer.serveStatic("/", SPIFFS, "/index.htm");
+  webServer.on("/", HTTP_POST, []() {
+    String msg = "";
+
+    Serial.println("*N* POST RECEIVED! ");
+
+    for (int i = 0; i < webServer.args(); i++)
+      msg = msg+webServer.argName(i)+"="+webServer.arg(i)+"\n";
+    
+    webServer.send(200, "text/plain", msg);
+  });
 
   // State Machine
   switch (digitalRead(CONF_PIN))
