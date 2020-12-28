@@ -83,8 +83,6 @@ void setup()
   Serial.begin(HW_UART_SPEED);
   while (!Serial)
     ;
-  Serial.print("*N* SETUP START ");
-  Serial.println(millis());
 
   // DHT Sensor
   dht.begin();
@@ -96,10 +94,13 @@ void setup()
 
     Serial.println("*N* POST RECEIVED! ");
 
-    for (int i = 0; i < webServer.args(); i++)
-      msg = msg+webServer.argName(i)+"="+webServer.arg(i)+"\n";
-    
-    webServer.send(200, "text/plain", msg);
+    strcpy(conf.ssid, webServer.arg("wifiSsid").c_str());
+    Serial.print("*N* SSID=");
+    Serial.println(conf.ssid);
+    strcpy(conf.passwd, webServer.arg("wifiPasswd").c_str());
+    Serial.print("*N* PASSWD=");
+    Serial.println(conf.passwd);
+    webServer.send(200, "text/plain", "Configuration mise à jour.");
   });
 
   // State Machine
@@ -124,8 +125,6 @@ void setup()
   }
 
   // Sync. before exit
-  Serial.print("*N* SETUP END ");
-  Serial.println(millis());
   waitTimeHit(0, SETUP_TIME * 1E3);
 }
 
@@ -135,14 +134,9 @@ void loop()
   unsigned long tStart_ms = millis();
 
   // Entry
-  Serial.print("*N* LOOP START ");
-  Serial.println(millis());
-
   stateDuringAction();
 
   // Sync. before exit
-  Serial.print("*N* LOOP END ");
-  Serial.println(millis());
   waitTimeHit(tStart_ms, LOOP_PERIOD * 1E3);
 }
 
