@@ -100,7 +100,7 @@ void setup()
     strcpy(conf.passwd, webServer.arg("wifiPasswd").c_str());
     Serial.print("*N* PASSWD=");
     Serial.println(conf.passwd);
-    webServer.send(200, "text/plain", "Configuration mise à jour.");
+    webServer.send(200, "text/plain", "Configuration updated.");
   });
 
   // State Machine
