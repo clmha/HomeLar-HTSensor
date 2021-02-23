@@ -87,22 +87,6 @@ void setup()
   // DHT Sensor
   dht.begin();
 
-  // Web Server
-  webServer.serveStatic("/", SPIFFS, "/index.htm");
-  webServer.on("/", HTTP_POST, []() {
-    String msg = "";
-
-    Serial.println("*N* POST RECEIVED! ");
-
-    strcpy(conf.ssid, webServer.arg("wifiSsid").c_str());
-    Serial.print("*N* SSID=");
-    Serial.println(conf.ssid);
-    strcpy(conf.passwd, webServer.arg("wifiPasswd").c_str());
-    Serial.print("*N* PASSWD=");
-    Serial.println(conf.passwd);
-    webServer.send(200, "text/plain", "Configuration updated.");
-  });
-
   // State Machine
   switch (digitalRead(CONF_PIN))
   {
@@ -110,9 +94,7 @@ void setup()
     // We are going in the CONF state, do the state entry actions directly
     // here.
     Serial.println("*N* CONF STATE");
-    WiFi.softAP(WiFi.hostname().c_str(), NULL);
     stateDuringAction = &confStateDuringAction;
-    webServer.begin();
     break;
   case HIGH:
     // We are going in the MEAS state do the state entry actions directly
@@ -144,7 +126,31 @@ void confStateDuringAction()
 {
   //MEASSTATEDURINGACTION Action that occurs on a time step when the CONF state is already active
 
-  webServer.handleClient();
+  String msg;
+
+  Serial.print("*N* SSID=");
+  Serial.println(conf.ssid);
+  msg = Serial.readStringUntil('\n');
+  if (msg.length() > 0)
+    strcpy(conf.ssid, msg.c_str());
+
+  Serial.print("*N* PASSWD=");
+  Serial.println(conf.passwd);
+  msg = Serial.readStringUntil('\n');
+  if (msg.length() > 0)
+    strcpy(conf.passwd, msg.c_str());
+
+  Serial.print("*N* SRV=");
+  Serial.println(conf.mqttSrv);
+  msg = Serial.readStringUntil('\n');
+  if (msg.length() > 0)
+    strcpy(conf.mqttSrv, msg.c_str());
+
+  Serial.print("*N* ROOM=");
+  Serial.println(conf.room);
+  msg = Serial.readStringUntil('\n');
+  if (msg.length() > 0)
+    strcpy(conf.room, msg.c_str());
 }
 
 void measStateDuringAction()
